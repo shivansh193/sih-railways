@@ -1,6 +1,54 @@
 ## 📖 API Documentation
 
-**Base URL:** `http://127.0.0.1:5001`
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/railforecast-core.git
+    cd railforecast-core
+    ```
+
+2.  **Create and activate a virtual environment:**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install -r backend/requirements.txt
+    ```
+
+4.  **Configure Environment Variables:**
+    - Create a file named `.env` inside the `backend/` directory.
+    - Add your Supabase project credentials to this file:
+      ```env
+      SUPABASE_URL="YOUR_SUPABASE_URL_HERE"
+      SUPABASE_KEY="YOUR_SUPABASE_ANON_KEY_HERE"
+      ```
+
+### 3. One-Time Initialization
+
+These scripts need to be run only once to populate the database and train the ML model.
+
+1.  **Seed the Database:** This script will connect to Supabase, create the necessary tables, and populate them with synthetic data.
+    ```bash
+    # From the backend/ directory
+    python data_generator.py
+    ```
+
+2.  **Train the ML Model:** This script fetches the data from Supabase, trains a delay prediction model, and saves it as `delay_model.pkl`.
+    ```bash
+    # From the backend/ directory
+    python train_model.py
+    ```
+
+### 4. Run the Server
+
+Start the Flask development server. The API will be available at `http://127.0.0.1:5001`.
+```bash
+# From the backend/ directory
+python app.py
+```
+
 
 ### API Endpoint Summary
 
