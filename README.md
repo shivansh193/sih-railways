@@ -1,6 +1,6 @@
 # 🚄 Rail-Forecast Core MVP
 
-This repository contains the backend server for a 12-hour Minimum Viable Product (MVP) of a real-time rail forecasting and recommendation engine. The application simulates a railway corridor, predicts delays using a machine learning model, analyzes network-wide impacts, and provides strategic recommendations to operators.
+This repository contains the backend server of a real-time rail forecasting and recommendation engine. The application simulates a railway corridor, predicts delays using a machine learning model, analyzes network-wide impacts, and provides strategic recommendations to operators.
 
 ## Tech Stack
 
@@ -19,7 +19,6 @@ Follow these steps to get the backend server up and running on your local machin
 ### 1. Prerequisites
 
 - Python 3.9+
-- A free Supabase account
 
 ### 2. Setup
 
