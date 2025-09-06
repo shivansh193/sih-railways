@@ -1,26 +1,4 @@
-# 🚄 Rail-Forecast Core MVP
-
-This repository contains the backend server of a real-time rail forecasting and recommendation engine. The application simulates a railway corridor, predicts delays using a machine learning model, analyzes network-wide impacts, and provides strategic recommendations to operators.
-
-## Tech Stack
-
-- **Backend:** Python, Flask
-- **Database:** Supabase (PostgreSQL)
-- **Machine Learning:** Scikit-learn, Pandas
-- **Simulation:** In-memory state machine
-- **Deployment:** Local Flask development server
-
----
-
-## 🚀 Getting Started
-
-Follow these steps to get the backend server up and running on your local machine.
-
-### 1. Prerequisites
-
-- Python 3.9+
-
-### 2. Setup
+## 📖 API Documentation
 
 1.  **Clone the repository:**
     ```bash
@@ -66,12 +44,11 @@ These scripts need to be run only once to populate the database and train the ML
 ### 4. Run the Server
 
 Start the Flask development server. The API will be available at `http://127.0.0.1:5001`.
-
 ```bash
 # From the backend/ directory
 python app.py
+```
 
-**Base URL:** `http://127.0.0.1:5001`
 
 ### API Endpoint Summary
 
