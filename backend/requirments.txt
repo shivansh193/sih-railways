@@ -1,8 +1,9 @@
-# requirements.txt
 flask
 pandas
 scikit-learn
 joblib
 numpy
 supabase
-dotenv
+python-dotenv
+gunicorn
+xgboost
