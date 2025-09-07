@@ -10,7 +10,8 @@ export interface KPI {
   id: string;
   title: string;
   value: string;
-  change: string;
+  change: number;
+  status: 'good' | 'warning' | 'critical';
 }
 
 export interface Prediction {

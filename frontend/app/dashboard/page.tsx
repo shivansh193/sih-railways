@@ -73,7 +73,7 @@ function DelayedTrainsChart({ trains }: { trains: Train[] }) {
     );
 }
 
-const kpiIcons = {
+const kpiIcons: { [key: string]: React.ElementType } = {
     on_time_percentage: CheckCircle,
     average_delay: Clock,
     active_trains: TrainFront,
