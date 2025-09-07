@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge';
 const getPriorityVariant = (priority: Recommendation['priority']) => {
     switch (priority) {
         case 'High': return 'destructive';
-        case 'Medium': return 'warning';
-        case 'Low': return 'success';
+        case 'Medium': return 'secondary';
+        case 'Low': return 'default';
         default: return 'secondary';
     }
 };
