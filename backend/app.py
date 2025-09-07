@@ -242,6 +242,6 @@ def inject_scenario():
     
     return jsonify({'message': 'Normal operations restored.'})
 
-# --- 7. MAIN EXECUTION BLOCK ---
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Render injects PORT, defaults to 5000 locally
+    app.run(host="0.0.0.0", port=port, debug=False)
