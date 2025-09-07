@@ -1,0 +1,54 @@
+This document describes the functions in the Rail-Forecast application.
+
+File: backend/app.py
+=====================
+
+Classes:
+--------
+- Train: Represents a single train in the simulation. (No changes)
+  - __init__(self, train_id, schedule_data): Initializes a train with its ID and schedule.
+  - get_current_location(self): Returns the name of the station the train is currently at.
+  - update(self, current_time): Updates the train's location and status based on the simulation's current time.
+
+- TrainSimulator: Manages the entire state of the railway network simulation. (No changes)
+  - __init__(self): Initializes the simulator and loads the initial train data from the database.
+  - _load_initial_state(self): Fetches all train schedules from the Supabase database to populate the simulation.
+  - step(self, minutes=1): Advances the simulation time by a given number of minutes and updates all trains.
+  - add_delay_event(self, train_id, delay_minutes, cause="MANUAL"): Manually adds a delay to a specific train.
+  - get_state(self): Creates a JSON-friendly snapshot of the current simulation state.
+
+Helper Functions:
+-----------------
+- calculate_cascade_impact(primary_train_id, primary_delay_minutes): Calculates the ripple effect of a single train's delay on other trains in the network. (No changes)
+- generate_recommendations(cascade_analysis, risk_level="LOW"): (ENHANCED) Generates actionable recommendations. Now includes a 'risk_level' parameter that can trigger critical AI-driven alerts.
+
+API Endpoints:
+--------------
+- get_simulation_state(): [GET /simulation_state]
+  - Advances the simulation by 5 minutes and returns the current state of all trains.
+- get_kpis(): [GET /kpis] (NEW)
+  - Returns key performance indicators (KPIs) for the network, including on-time percentage, average delay, and the number of active trains.
+- predict_delay_enhanced(): [POST /predict_delay] (COMPLETELY REPLACED)
+  - Takes a train ID and scenario context. Uses an enhanced ML model to predict delay and provides an explanation of the factors influencing the prediction.
+- analyze_impact(): [POST /analyze_impact]
+  - Takes a train ID and a predicted delay, and calculates the cascading impact on the rest of the network.
+- get_recommendations(): [POST /get_recommendations] (ENHANCED)
+  - Takes a cascade analysis and a risk level, and generates strategic recommendations, including potential critical alerts.
+- reset_simulation(): [POST /reset_simulation]
+  - Resets the entire simulation to its initial state.
+- inject_scenario(): [POST /inject_scenario] (ENHANCED)
+  - Resets the simulation and injects a more detailed pre-defined demo scenario (e.g., critical train breakdown, widespread weather disruption).
+
+File: backend/data_generator.py
+===============================
+- generate_and_upload(): (No changes)
+  - Generates a set of synthetic train schedules and delay events.
+  - Uploads this generated data to the 'schedules' and 'delays' tables in the Supabase database.
+
+File: backend/train_model.py
+============================
+- train_and_save_model(): (No changes)
+  - Fetches the delay data from the Supabase database.
+  - Performs feature engineering on the data.
+  - Trains a RandomForestRegressor model.
+  - Saves the trained model to a file named 'delay_model.pkl'.

@@ -1,0 +1,98 @@
+This file contains example requests for the API routes in the Rail-Forecast application.
+
+Note: Replace "http://127.0.0.1:5001" with your actual server address.
+
+---
+1. Get Simulation State
+   - Description: Retrieves the current state of all trains in the simulation. The simulation automatically advances by 5 minutes on each call.
+   - Method: GET
+   - URL: http://127.0.0.1:5001/simulation_state
+
+   Example using curl:
+   curl http://127.0.0.1:5001/simulation_state
+
+---
+2. Get Key Performance Indicators (KPIs) (NEW)
+   - Description: Retrieves high-level KPIs about the network's performance.
+   - Method: GET
+   - URL: http://127.0.0.1:5001/kpis
+
+   Example using curl:
+   curl http://127.0.0.1:5001/kpis
+
+---
+3. Predict Future Delay (ENHANCED)
+   - Description: Predicts the additional delay for a specific train and explains the reasoning.
+   - Method: POST
+   - URL: http://127.0.0.1:5001/predict_delay
+   - Body (JSON):
+     {
+       "train_id": "T-105",
+       "scenario": "weather_disruption"
+     }
+
+   Example using curl:
+   curl -X POST -H "Content-Type: application/json" -d '{"train_id": "T-105", "scenario": "weather_disruption"}' http://127.0.0.1:5001/predict_delay
+
+---
+4. Analyze Network Impact
+   - Description: Calculates the cascading impact of a single train's delay on the entire network.
+   - Method: POST
+   - URL: http://127.0.0.1:5001/analyze_impact
+   - Body (JSON):
+     {
+       "train_id": "T-105",
+       "predicted_delay": 45
+     }
+
+   Example using curl:
+   curl -X POST -H "Content-Type: application/json" -d '{"train_id": "T-105", "predicted_delay": 45}' http://127.0.0.1:5001/analyze_impact
+
+---
+5. Get Recommendations (ENHANCED)
+   - Description: Generates actionable recommendations based on a network impact analysis and a specified risk level.
+   - Method: POST
+   - URL: http://127.0.0.1:5001/get_recommendations
+   - Body (JSON):
+     {
+       "cascade_analysis": {
+         "primary_train_id": "T-105",
+         "primary_delay": 45,
+         "affected_count": 2,
+         "total_impact_minutes": 25,
+         "affected_trains": [
+           {"id": "T-108", "additional_delay": 15},
+           {"id": "T-112", "additional_delay": 10}
+         ]
+       },
+       "risk_level": "HIGH"
+     }
+
+   Example using curl:
+   curl -X POST -H "Content-Type: application/json" -d '{"cascade_analysis": {"primary_train_id": "T-105", "affected_count": 2, "total_impact_minutes": 25}, "risk_level": "HIGH"}' http://127.0.0.1:5001/get_recommendations
+
+---
+6. Reset Simulation
+   - Description: Resets the simulation to its original starting time and state.
+   - Method: POST
+   - URL: http://127.0.0.1:5001/reset_simulation
+
+   Example using curl:
+   curl -X POST http://127.0.0.1:5001/reset_simulation
+
+---
+7. Inject Demo Scenario (ENHANCED)
+   - Description: Resets the simulation and injects a more detailed, pre-defined scenario.
+   - Method: POST
+   - URL: http://127.0.0.1:5001/inject_scenario
+   - Body (JSON):
+     {
+       "scenario": "single_breakdown"
+     }
+     OR
+     {
+       "scenario": "weather_disruption"
+     }
+
+   Example using curl:
+   curl -X POST -H "Content-Type: application/json" -d '{"scenario": "weather_disruption"}' http://127.0.0.1:5001/inject_scenario

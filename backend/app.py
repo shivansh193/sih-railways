@@ -6,11 +6,19 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, request
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from flask_cors import CORS
 from improved_model import EnhancedDelayPredictor
 
 # --- 1. SETUP & CONFIGURATION ---
 load_dotenv()
 app = Flask(__name__)
+
+# --- START: CORS CONFIGURATION ---
+# This is the line that fixes the browser error.
+# It tells the server to accept requests from your Next.js frontend.
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+# --- END: CORS CONFIGURATION ---
+
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
@@ -111,16 +119,47 @@ def generate_recommendations(cascade_analysis, risk_level="LOW"): # ENHANCED
 @app.route('/simulation_state', methods=['GET'])
 def get_simulation_state():
     simulator.step(minutes=5)
-    return jsonify(simulator.get_state())
+    # Convert your custom Train objects into a standard dictionary format
+    train_list = []
+    for train in simulator.trains.values():
+        if train.status != 'FINISHED':
+            train_list.append({
+                'id': train.id,
+                'current_station': train.get_current_location(),
+                'next_station': train.schedule[train.current_station_index + 1][0] if train.current_station_index + 1 < len(train.schedule) else 'End of Line',
+                'status': 'Delayed' if train.current_delay > 0 else 'On-Time',
+                'delay_minutes': train.current_delay
+            })
+    
+    state = {
+        'currentTime': simulator.current_time.strftime('%Y-%m-%d %H:%M'),
+        'trains': train_list
+    }
+    return jsonify(state)
 
-@app.route('/kpis', methods=['GET']) # NEW
+@app.route('/kpis', methods=['GET'])
 def get_kpis():
     trains = [t for t in simulator.trains.values() if t.status != 'FINISHED']
     total_trains = len(trains)
-    if total_trains == 0: return jsonify({'on_time_percentage': 100, 'average_delay_minutes': 0, 'active_trains': 0})
+    if total_trains == 0:
+        kpis = [
+            {'id': 'on_time_percentage', 'title': 'On-Time Percentage', 'value': '100%', 'change': 'N/A'},
+            {'id': 'average_delay', 'title': 'Average Delay', 'value': '0 min', 'change': 'N/A'},
+            {'id': 'active_trains', 'title': 'Active Trains', 'value': '0', 'change': 'N/A'}
+        ]
+        return jsonify({'kpis': kpis})
+
     on_time_count = sum(1 for t in trains if t.status == 'ON_TIME')
     total_delay = sum(t.current_delay for t in trains)
-    return jsonify({'on_time_percentage': round((on_time_count / total_trains) * 100, 1), 'average_delay_minutes': round(total_delay / total_trains, 1), 'active_trains': total_trains})
+    on_time_percentage = round((on_time_count / total_trains) * 100, 1)
+    average_delay_minutes = round(total_delay / total_trains, 1)
+
+    kpis = [
+        {'id': 'on_time_percentage', 'title': 'On-Time Percentage', 'value': f'{on_time_percentage}%', 'change': '+0.5% from last hour'},
+        {'id': 'average_delay', 'title': 'Average Delay', 'value': f'{average_delay_minutes} min', 'change': '-2% from last hour'},
+        {'id': 'active_trains', 'title': 'Active Trains', 'value': str(total_trains), 'change': '+1 from last hour'}
+    ]
+    return jsonify({'kpis': kpis})
 
 @app.route('/predict_delay', methods=['POST']) # COMPLETELY REPLACED
 def predict_delay_enhanced():
@@ -139,21 +178,42 @@ def predict_delay_enhanced():
         'congestion': len([t for t in simulator.trains.values() if t.status == 'DELAYED']) / len(simulator.trains)
     }
     prediction_result = enhanced_predictor.predict_with_explanation(input_features)
+    # Manually add train_id to the response as required by the frontend
+    prediction_result['train_id'] = train_id
     return jsonify(prediction_result)
 
 @app.route('/analyze_impact', methods=['POST'])
 def analyze_impact():
     data = request.get_json()
-    impact = calculate_cascade_impact(data.get('train_id'), data.get('predicted_delay'))
-    return jsonify(impact)
+    impact_data = calculate_cascade_impact(data.get('train_id'), data.get('predicted_delay'))
+    
+    # Restructure the response to match the frontend's expected format
+    response = {
+        'primary_train': impact_data.get('primary_train_id'),
+        'affected_train_count': impact_data.get('affected_count'),
+        'total_delay_minutes': impact_data.get('total_impact_minutes'),
+        'affected_trains': [
+            {'train_id': t['id'], 'additional_delay': t['additional_delay']}
+            for t in impact_data.get('affected_trains', [])
+        ]
+    }
+    return jsonify(response)
 
 @app.route('/get_recommendations', methods=['POST']) # ENHANCED
-def get_recommendations():
+def get_recommendations_route():
     data = request.get_json()
     cascade_analysis = data.get('cascade_analysis')
     risk_level = data.get('risk_level')
     recs = generate_recommendations(cascade_analysis, risk_level)
-    return jsonify(recs)
+    # Restructure the response to match the frontend's expected format
+    response = {
+        'recommendations': [
+            {'priority': r['priority'], 'action': r['action'], 'confidence': r['confidence']}
+            for r in recs
+        ]
+    }
+    return jsonify(response)
+
 
 # --- 6. DEMO CONTROL ENDPOINTS ---
 @app.route('/reset_simulation', methods=['POST'])

@@ -1,0 +1,171 @@
+# Game Plan: Full-Stack Integration (Python Backend + Next.js Frontend)
+
+This document outlines a comprehensive plan to integrate the Python/Flask backend with the Next.js frontend for the Rail-Forecast application.
+
+## Part 1: Core Strategy & Setup
+
+### 1.1. Backend Configuration (CORS)
+The Flask backend must be configured to accept requests from the frontend.
+
+**Action:**
+1.  Install `Flask-CORS`: In the backend `venv`, run `pip install Flask-Cors`.
+2.  Update `backend/app.py`:
+    ```python
+    # At the top, with other imports
+    from flask_cors import CORS
+
+    # After `app = Flask(__name__)`
+    CORS(app) # This will allow all origins for development
+    ```
+
+### 1.2. Frontend Configuration (Environment)
+The frontend needs to know the backend's address.
+
+**Action:**
+1.  Create a file: `frontend/.env.local`.
+2.  Add the following line to it. This ensures the frontend calls the correct API port.
+    ```
+    NEXT_PUBLIC_API_URL=http://127.0.0.1:5001
+    ```
+
+## Part 2: Frontend API Service Layer
+
+To keep the code clean and reusable, all API calls will be centralized in a single service file.
+
+**Action:**
+1.  Create a new file: `frontend/app/lib/api.ts`.
+2.  Populate this file with functions that call the backend endpoints.
+
+**`frontend/app/lib/api.ts` (Initial Structure):**
+```typescript
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// Helper for POST requests
+async function postData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+// --- API Functions ---
+
+// GET /kpis
+export const getKpis = async () => {
+  const response = await fetch(`${API_URL}/kpis`);
+  return response.json();
+};
+
+// GET /simulation_state
+export const getSimulationState = async () => {
+  const response = await fetch(`${API_URL}/simulation_state`);
+  return response.json();
+};
+
+// POST /inject_scenario
+export const injectScenario = async (scenario: string) => {
+  return postData(`${API_URL}/inject_scenario`, { scenario });
+};
+
+// POST /reset_simulation
+export const resetSimulation = async () => {
+  return postData(`${API_URL}/reset_simulation`);
+};
+
+// POST /predict_delay
+export const predictDelay = async (trainId: string, scenario: string) => {
+  return postData(`${API_URL}/predict_delay`, { train_id: trainId, scenario });
+};
+
+// POST /analyze_impact
+export const analyzeImpact = async (trainId: string, predictedDelay: number) => {
+  return postData(`${API_URL}/analyze_impact`, { train_id: trainId, predicted_delay: predictedDelay });
+};
+
+// POST /get_recommendations
+export const getRecommendations = async (cascadeAnalysis: any, riskLevel: string) => {
+  return postData(`${API_URL}/get_recommendations`, { cascade_analysis: cascadeAnalysis, risk_level: riskLevel });
+};
+```
+
+## Part 3: Page-by-Page Integration Plan
+
+This section maps each frontend page to its corresponding backend API calls and outlines the required UI changes.
+
+### 3.1. `scenarios/page.tsx` (Control Panel)
+*   **Goal:** Control the simulation's state. This should be implemented first.
+*   **API Calls:** `injectScenario()`, `resetSimulation()`.
+*   **UI Plan:**
+    1.  Create buttons for "Single Breakdown", "Weather Disruption", and "Normal Operations".
+    2.  Each button will call the `injectScenario` function from `api.ts` with the respective scenario name.
+    3.  Add a "Reset Simulation" button that calls `resetSimulation`.
+    4.  Display the message returned from the API to confirm the action.
+
+### 3.2. `dashboard/page.tsx` (Main Overview)
+*   **Goal:** Display high-level KPIs and a summary of the network status.
+*   **API Calls:** `getKpis()`, `getSimulationState()`.
+*   **UI Plan:**
+    1.  Replace the placeholder "Total Revenue" and "Subscriptions" cards with KPI data. Use the data from `getKpis` to show "On-Time Percentage" and "Average Delay".
+    2.  Replace the "Recent Sales" component with a "Live Train Status" table. Use the `trains` array from `getSimulationState` to populate it.
+    3.  The "Overview" chart can be repurposed to show the number of delayed vs. on-time trains.
+
+### 3.3. The Core Workflow (Predictions -> Impact -> Recommendations)
+
+This is the central user journey of the application. It's best to manage the state across these pages. A simple state management solution (like Zustand or React Context) would be ideal to pass the `prediction` result to the `impact` page, and the `impact` result to the `recommendations` page.
+
+**A. `predictions/page.tsx`**
+*   **Goal:** Predict a delay for a single train.
+*   **API Calls:** `predictDelay()`. It also needs `getSimulationState()` to get a list of active trains for the user to select.
+*   **UI Plan:**
+    1.  Create a dropdown menu populated with train IDs from `getSimulationState`.
+    2.  Once a train is selected, call `predictDelay`.
+    3.  Display the `predicted_delay` and the `explanation` from the API response.
+    4.  Add a button "Analyze Impact" that navigates the user to the `/impact` page, passing the `train_id` and `predicted_delay`.
+
+**B. `impact/page.tsx`**
+*   **Goal:** Show the cascading effects of a predicted delay.
+*   **API Calls:** `analyzeImpact()`.
+*   **UI Plan:**
+    1.  On page load, get the `train_id` and `predicted_delay` from the URL or state.
+    2.  Call `analyzeImpact`.
+    3.  Display the results: "Primary Train", "Affected Train Count", "Total Delay Minutes".
+    4.  Show a list or table of all `affected_trains` and their `additional_delay`.
+    5.  Add a button "Get Recommendations" that navigates to the `/recommendations` page, passing the full impact analysis result.
+
+**C. `recommendations/page.tsx`**
+*   **Goal:** Provide actionable recommendations.
+*   **API Calls:** `getRecommendations()`.
+*   **UI Plan:**
+    1.  On page load, get the `cascade_analysis` data.
+    2.  Include a simple input for `risk_level` (e.g., a dropdown with "Low", "Medium", "High").
+    3.  Call `getRecommendations`.
+    4.  Display the recommendations in a clean, prioritized list, showing the `priority` and `action` for each.
+
+### 3.4. `monitor/page.tsx` (Live Network Map)
+*   **Goal:** Provide a real-time view of the train network.
+*   **API Calls:** `getSimulationState()`.
+*   **UI Plan:**
+    1.  Use a `useEffect` hook with a timer to call `getSimulationState` every 5-10 seconds.
+    2.  Display the `currentTime` from the API response.
+    3.  Instead of a static table, consider a more visual representation of the trains (e.g., dots on a map or a linear track diagram).
+    4.  Update the positions and statuses (On-Time/Delayed) of trains as new data is fetched.
+
+### 3.5. `analytics/page.tsx` (Future Enhancements)
+*   **Goal:** Deeper analysis of simulation data.
+*   **Plan:** This page is currently a lower priority. It could be used later to:
+    *   Store and visualize historical KPI data.
+    *   Show charts on which trains are most frequently delayed.
+    *   Analyze the effectiveness of recommendations over time.
+    *   This would require adding database persistence to the backend.
+
+## Part 4: Recommended Implementation Order
+
+1.  **Setup:** Complete Part 1 (CORS and .env).
+2.  **API Service:** Implement Part 2 (`api.ts`).
+3.  **Control Panel:** Build the `scenarios` page. This is crucial for testing other components.
+4.  **Dashboard:** Build the `dashboard` page to visualize the simulation's state.
+5.  **Core Workflow:** Implement `predictions`, then `impact`, then `recommendations`.
+6.  **Live Monitor:** Build the `monitor` page.
+7.  **Refinement:** Improve styling, error handling, and loading states across all pages.

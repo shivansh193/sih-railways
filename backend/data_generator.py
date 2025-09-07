@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-load_dotenv('../.env') # Load .env file from parent directory
+load_dotenv('.env') # Load .env file from parent directory
 
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
